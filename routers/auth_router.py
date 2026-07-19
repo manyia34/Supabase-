@@ -113,9 +113,6 @@ def User_login(user : UserLogin):
     store_user = user_response.data[0] if user_response.data else None
 
     try:
-        # Always run the password verification (against a dummy hash when the
-        # user does not exist) so response timing does not reveal whether an
-        # email is registered.
         is_valid_password = verify_password(
             user.password,
             store_user["password_hash"]
