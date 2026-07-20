@@ -127,3 +127,72 @@ def delete_product_by_id(product_id : int):
         "message" : "Product deleted Successfully !",
         "product" : response.data[0]
     }
+    
+# ===========================
+# PUT : to update whole data
+# ===========================
+@router.put('/{product_id}',
+            response_model=ProductActionResponse,
+            status_code=status.HTTP_200_OK)
+
+def updateProduct(product_id: int, product: Productupdate):
+    product_update = product.model_dump()
+    try:
+        response = (
+            supabase.
+            table("Product").
+            update(product_update).
+            eq("id", product_id).
+            select("*").
+            execute()
+        )
+    except Exception as error:
+        print("Put request error : ", error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Product Not Found")
+    if not response.data:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Product Not Found")
+    return {
+        "message": "Product Update Successfully",
+        "product": response.data[0]
+    }
+
+# ========================================
+# Patch : to update the specific field 
+# ========================================
+@router.patch('/{product_id}',
+            response_model=ProductActionResponse,
+            status_code=status.HTTP_200_OK)
+
+def patch_product(product_id: int, product: Productpatch):
+    product_patch = product.model_dump(
+        exclude_unset=True, 
+        # This removes any fields that you did not provide when creating the data model.Real-World Example: Imagine updating your online user profile. You only want to change your name. With this setting, you will only return the name field instead of returning your name, email, password, and birthday, which you didn't touch.
+        exclude_None=True,
+        # This removes any fields that are intentionally set to a null/empty value (None).Real-World Example: If you have an optional "middle name" field, and you leave it blank (or None), this setting hides it so it doesn't clutter up your output.
+    )
+    if not product_patch:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="No fields provided for update")
+    try:
+        response = (
+            supabase.
+            table("Product").
+            update(product_patch).
+            eq("id", product_id).
+            select("*").
+            execute()
+        )
+    except Exception as error:
+        print("Patch response failed : ", error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Patch request not running")
+    if not response.data:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Patch request not running")
+    return {
+        "message": "Product Partially Updated Successfully",
+        "product": response.data[0]
+    }
+    
