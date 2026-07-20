@@ -3,11 +3,13 @@ from database import supabase
 from security import (
     verify_password,
     hash_password,
+    create_access_token
 )
 from models.user_model import (
     UserRegister,
     UserLogin,
     UserActionResponse,
+    TokenResponse
 )
 
 router = APIRouter(
@@ -90,14 +92,13 @@ def User_register(user : UserRegister):
 # ======================
 # Creating a Login API
 # ======================
-@router.post('/login',status_code=status.HTTP_200_OK,response_model=UserActionResponse)
+@router.post('/login',status_code=status.HTTP_200_OK,response_model=TokenResponse)
 def User_login(user : UserLogin):
-    
-    try:
-        normalized_email = (
+    normalized_email = (
             str(user.email).strip().lower()
         ) 
-        
+    
+    try:
         user_response = (
             supabase.
             table("users").
@@ -110,19 +111,21 @@ def User_login(user : UserLogin):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Failed to fetch user")
         
-    store_user = user_response.data[0] if user_response.data else None
-
+    if not user_response.data:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid email or password")
+    
+    store_user = user_response.data[0]
+    
     try:
-        is_valid_password = verify_password(
-            user.password,
-            store_user["password_hash"]
-        )
+        is_valid_password = verify_password(user.password, store_user["password_hash"])
+        
     except Exception as error:
         print("password verify error: ",error)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to login user")
 
-    if store_user is None or not is_valid_password:
+    if not is_valid_password:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Invalid email or password")
         
@@ -132,16 +135,29 @@ def User_login(user : UserLogin):
             detail="Account is in the inactive state"
         )
         
-    safe_user = {
-        "id" : store_user["id"],
-        "full_name" : store_user["full_name"],
-        "email" : store_user["email"],
-        "role" : store_user["role"],
-        "is_active" : store_user["is_active"],
-        "created_at" : store_user["created_at"]
+    try:
+        access_token = create_access_token(user_id = str(store_user["id"]))
+    except Exception as error:
+        print("Access token error : ",error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="unable to complete login")
+        
+    return {
+        "access_token" : access_token,
+        "token_type" : "bearer"
     }
     
-    return {
-        "message" : "Login Successfull",
-        "user" : safe_user
-    }
+        
+    # safe_user = {
+    #     "id" : store_user["id"],
+    #     "full_name" : store_user["full_name"],
+    #     "email" : store_user["email"],
+    #     "role" : store_user["role"],
+    #     "is_active" : store_user["is_active"],
+    #     "created_at" : store_user["created_at"]
+    # }
+    
+    # return {
+    #     "message" : "Login Successfull",
+    #     "user" : safe_user
+    # }

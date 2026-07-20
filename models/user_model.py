@@ -49,3 +49,9 @@ class UserActionResponse(BaseModel):
     message : str
     user : UserResponse
 
+# ==================================
+# Creating model of token response 
+# ==================================
+class TokenResponse(BaseModel):
+    access_token : str
+    token_type : str
