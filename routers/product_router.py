@@ -140,7 +140,7 @@ def updateProduct(product_id: int, product: Productupdate):
     try:
         response = (
             supabase.
-            table("Product").
+            table("product").
             update(product_update).
             eq("id", product_id).
             select("*").
@@ -167,9 +167,9 @@ def updateProduct(product_id: int, product: Productupdate):
 
 def patch_product(product_id: int, product: Productpatch):
     product_patch = product.model_dump(
-        exclude_unset=True, 
+        exclude_unset=True,
         # This removes any fields that you did not provide when creating the data model.Real-World Example: Imagine updating your online user profile. You only want to change your name. With this setting, you will only return the name field instead of returning your name, email, password, and birthday, which you didn't touch.
-        exclude_None=True,
+        exclude_none=True,
         # This removes any fields that are intentionally set to a null/empty value (None).Real-World Example: If you have an optional "middle name" field, and you leave it blank (or None), this setting hides it so it doesn't clutter up your output.
     )
     if not product_patch:
@@ -178,7 +178,7 @@ def patch_product(product_id: int, product: Productpatch):
     try:
         response = (
             supabase.
-            table("Product").
+            table("product").
             update(product_patch).
             eq("id", product_id).
             select("*").
